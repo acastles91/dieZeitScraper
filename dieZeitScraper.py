@@ -1,5 +1,13 @@
 import newspaper, bs4, requests, time, sys, webbrowser, re, datetime, os, json
 
+if 'articles' not in os.listdir():
+    os.mkdir('articles')
+if 'editions' not in os.listdir():
+    os.mkdir('editions')
+if 'search' not in os.listdir():
+    os.mkdir('search')
+
+
 baseUrl = 'https://www.zeit.de'
 numberPages = 0
 searcher = '/suche/index?p='
