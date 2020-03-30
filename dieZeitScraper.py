@@ -485,7 +485,7 @@ grabPagesSearcher('reisepass', 'search/reisepassTest')
 #scraping!
 
 for i in range(0, len(os.listdir('search/'))):
-    lookForWord('search/' + os.listdir('search/')[i], 'testFoundZeit', 'reisepass', 'reisepässen')
+    lookForWord('search/' + os.listdir('search/')[i], 'testFoundZeit' + str(i), 'reisepass', 'reisepässen')
 
 #grabPagesSearcher('reisepass')
 # editions = []
