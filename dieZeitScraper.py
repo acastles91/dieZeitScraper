@@ -6,7 +6,32 @@ if 'editions' not in os.listdir():
     os.mkdir('editions')
 if 'search' not in os.listdir():
     os.mkdir('search')
+if 'login' not in os.listdir():
+    os.mkdir('login')
 
+loginParams = []
+
+
+loginFile = 'login/login.txt'
+with open(loginFile,'r')  as login:
+    for i in login:
+        loginParams.append(i)
+
+headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'}
+
+loginUrl = 'https://meine.zeit.de/anmelden?url=https%3A%2F%2Fwww.zeit.de%2Fkonto'
+loginDict = {'email': loginParams[0][0:-1], 'pass': loginParams[1][0:-1]}
+
+firstSession = requests.Session()
+l = firstSession.post(loginUrl, loginDict)
+#print(firstSession.cookies)
+#print(firstSession.headers)
+session = requests.Session()
+#session.headers = headers
+
+loginRequest = session.post(loginUrl, loginDict)
+#print(loginRequest)
+#print("Login request success")
 
 baseUrl = 'https://www.zeit.de'
 numberPages = 0
@@ -16,8 +41,8 @@ searcher2 = '/suche/index?q='
 timeStamp = datetime.date.today().strftime("%d-%m-%Y")
 hrefRegex = re.compile('https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)')
 
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',}
-
+#headers = {'Host': 'https://www.google.com', 'Connection': 'keep alive', 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',}
+#headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0',}
 notArticles = [
 'https://www.zeit.de/index',
 'https://www.zeit.de/impressum/index',
@@ -116,8 +141,10 @@ def findNumberPagesSearcher(searcherUrl): ##This function looks fur the number o
     global baseUrl
     global numberPages
 
-    res = requests.get(searcherUrl, headers=headers)
+    
+    res = session.get(searcherUrl)
     res.raise_for_status()
+    print(res.text)
     dieZeitSearch = bs4.BeautifulSoup(res.text, 'lxml')
     lastPage = dieZeitSearch.select('li.pager__page:nth-child(7) > a:nth-child(1)')
     numberRegex = re.compile(r'\d{1,3}')
@@ -149,7 +176,7 @@ def grabPagesSearcher(word, file):
 
             print('Page ' + str(i) + ' of ' + str(numberPages))
 
-            res = requests.get(baseUrl + searcher2 + word + pageSelector + str(i))
+            res = session.get(baseUrl + searcher2 + word + pageSelector + str(i))
             res.raise_for_status()
             #print(res.url)
             dieZeitSearch = bs4.BeautifulSoup(res.text, 'lxml')
@@ -195,7 +222,7 @@ def grabPagesArchive(year): ##based on a year, grab all the editions from that y
         archiveYear = baseUrl + '/' + str(year) + '/index'
         notArticles.append(archiveYear)
 
-        res = requests.get(archiveYear, headers=headers)
+        res = session.get(archiveYear, headers=headers)
         res.raise_for_status()
         dieZeitArchiv = bs4.BeautifulSoup(res.text, 'lxml')
         indexedPages = []
@@ -246,7 +273,7 @@ def grabArticleLinksEdition(file): ## based on a file resulting from the previou
 
         for i in range(1, len(editions)):
             notArticles.append(editions[i])
-            res = requests.get(editions[i], headers=headers)
+            res = session.get(editions[i], headers=headers)
             #res = requests.post(editions[i], headers=headers)
             res.raise_for_status()
 
@@ -282,7 +309,6 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
     
     # for i in range(1,len(articles)):
     #     article = newspaper.Article(articles[i])
-    #     article.download()
     #     article.parse() 
     #     if word in article.text:
     #         selectedArticles.append({article, article.title, article.text})
@@ -315,12 +341,12 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
         for i in range(1,len(articles)):
             
             try:
-                res = requests.get(articles[i] + '/komplettansicht')
+                res = session.get(articles[i] + '/komplettansicht')
                 res.raise_for_status()
                 print('Multiple page article at ' + res.url)
             except:
                 try:
-                    res = requests.get(articles[i])
+                    res = session.get(articles[i])
                     res.raise_for_status()
                     print('Single page article at ' + res.url)
                 except:
@@ -403,7 +429,7 @@ def grabLinksSearch(index, file):
     global numberPages
     global timeStamp
 
-    res = requests.get(baseUrl + searcher + str(index))
+    res = session.get(baseUrl + searcher + str(index))
     res.raise_for_status()
     dieZeitSearch = bs4.BeautifulSoup(res.text, 'lxml')
     
@@ -452,30 +478,8 @@ def confirmRepeat(year, default="no"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
-#grabPagesArchive(2000, 'test4')
-#grabArticleLinksEdition('test4')
-#lookForWord('articles-year2000.txt', 'testFoundFile2', 'Reise')
-# for i in range(1,10):
-#     article = dieZeitSearch.select('article.zon-teaser-standard:nth-child(' + str(i) + ') > a:nth-child(1)') 
-#     #.zon-teaser-standard__combined-link')
-    
-#     urlSearch = hrefRegex.search(str(article))
-#     #print(urlSearch)
-#     #url = urlSearch.group()
-#     links = str(article)
-#     print(len(article))
-#     #print(article[0].getText())
-#     # print(article)
 
-#print(res.links)
-# for article in testPage.article_urls:
-#     print(article)
-
-# for i in range(numberPages + 1):
-    # newspaper
-     #url = baseUrl str(index)
-     #     index += 1
-
+##############################################################################
 
 #step 1: 
     #consolidate archive of links
@@ -486,17 +490,11 @@ def confirmRepeat(year, default="no"):
     #get through article links
 
 ##consolidation!
-#for i in range(2000, 2003):
-    #grabArticleLinksEdition(grabPagesArchive(i))
-grabPagesSearcher('reisepass', 'search/reisepassTest')
+
+grabPagesSearcher(sys.argv[1], 'search/' + sys.argv[1])
 
 #scraping!
 
 for i in range(0, len(os.listdir('search/'))):
-    lookForWord('search/' + os.listdir('search/')[i], 'testFoundZeit' + str(i), 'reisepass', 'reisepässen')
+    lookForWord('search/' + os.listdir('search/')[i], str(sys.argv[1] + '-results'), sys.argv[1], sys.argv[2])
 
-#grabPagesSearcher('reisepass')
-# editions = []
-# for i in range(2000, 2020):
-#     editions.append(grabPagesArchive(i))
-# for i in range(0, len(editions)):
