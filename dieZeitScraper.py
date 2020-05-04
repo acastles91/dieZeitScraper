@@ -8,6 +8,10 @@ if 'search' not in os.listdir():
     os.mkdir('search')
 if 'login' not in os.listdir():
     os.mkdir('login')
+if 'scraped' not in os.listdir():
+    os.mkdir('scraped')
+if 'error' not in os.listdir():
+    os.mkdir('error')
 
 loginParams = []
 
@@ -44,6 +48,19 @@ hrefRegex = re.compile('https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-
 #headers = {'Host': 'https://www.google.com', 'Connection': 'keep alive', 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',}
 #headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:75.0) Gecko/20100101 Firefox/75.0',}
 notArticles = [
+'https://www.zeit.de/konto/listen/merkliste',
+'https://www.zeit.de/angebote/mit-karte-bitte/index',
+'https://www.zeit.de/angebote/lagencuprot2020/index',
+'https://www.zeit.de/campus/angebote/howitworks/index',
+'https://www.zeit.de/campus/angebote/5-fragen-an-den-personaler/04-2020/index',
+'https://www.zeit.de/angebote/wanderhotels-in-den-alpen/index',
+'https://www.zeit.de/konto/listen/merkliste',
+'https://www.zeit.de/angebote/mit-karte-bitte/index',
+'https://www.zeit.de/angebote/lagencuprot2020/index',
+'https://www.zeit.de/campus/angebote/howitworks/index',
+'https://www.zeit.de/campus/angebote/5-fragen-an-den-personaler/04-2020/index',
+'https://www.zeit.de/angebote/wanderhotels-in-den-alpen/index',
+'https://www.zeit.de/sport/2020-04/rueckengesundheit-homeoffice-bueroarbeit-training-vorbeugung',
 'https://www.zeit.de/index',
 'https://www.zeit.de/impressum/index',
 'https://www.zeit.de/administratives/agb-kommentare-artikel',
@@ -300,19 +317,6 @@ def grabArticleLinksEdition(file): ## based on a file resulting from the previou
         # dieZeitArchiv = bs4.BeautifulSoup(res.text, 'lxml')
         # indexedPages = []
 def lookForWord(inputLinks, outputFile, word, wordPlural):
-    # with open(str(file), 'r') as yearLinks:
-    #     for line in yearLinks:
-    #         line = line.strip()
-    #         editions.append(line)
-    
-
-    
-    # for i in range(1,len(articles)):
-    #     article = newspaper.Article(articles[i])
-    #     article.parse() 
-    #     if word in article.text:
-    #         selectedArticles.append({article, article.title, article.text})
-    #         print(selectedArticles[-1])
 
     articles = []
     foundArticlesUrls = []
@@ -320,26 +324,42 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
     scrapedArticles = []
     searchRegex = re.compile(word, re.IGNORECASE)
     searchRegexPlural = re.compile(wordPlural, re.IGNORECASE)
-    
+    scrapedLog = 'scraped/' + sys.argv[1] + '-scraped.txt'
+    errorLog = 'error/' + sys.argv[1] + '-error.txt'
 
+    if not os.path.exists(scrapedLog):
+        scrapedLogCreator = open(scrapedLog, mode = 'w+', encoding = 'utf-8')
+        scrapedLogCreator.close()
+    
+    if not os.path.exists(errorLog):
+        errorLogCreator = open(errorLog, mode = 'w+', encoding = 'utf-8')
+        errorLogCreator.close()
+    
     with open(str(inputLinks), 'r') as articleLinks:
         for line in articleLinks:
             line = line.strip()
             articles.append(line)
     
-    with open('scrapedArticles.txt', 'r') as scrapedArticlesFile:
+    with open(scrapedLog, 'r') as scrapedArticlesFile:
         for line in scrapedArticlesFile:
             line = line.strip()
             scrapedArticles.append(line)
 
-    outputCreator = open(outputFile + '.txt', mode = 'w+', encoding = 'utf-8')
+    outputCreator = open(outputFile, mode = 'w+', encoding = 'utf-8')
     outputCreator.close()
 
+    
+    #f = open(scrapedLog,'r')
+    #for line in f:
+    #    foundArticles.append(line.strip())
+    #f.close()
+    
     #The resulting article text is a list, of which each paragraph is a string
-    with open('scrapedArticles.txt', mode = 'a+', encoding = 'utf-8')  as scrapedArticlesFile:
+    with open(scrapedLog, mode = 'a+', encoding = 'utf-8')  as scrapedArticlesFile:
             
         for i in range(1,len(articles)):
             
+            print('Article ' + str(i) + ' of ' + str(len(articles)))
             try:
                 res = session.get(articles[i] + '/komplettansicht')
                 res.raise_for_status()
@@ -357,9 +377,8 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
             try:
                 if (searchRegex.search(str(res.text.encode('utf-8'))) != None) or (searchRegexPlural.search(str(res.text)) != None) and res.url not in scrapedArticles:
                     try:
-                        print('Condition met, word found')
+                        ##print('Condition met, word found')
                         appendableArticle['url'] = res.url
-                        foundArticlesUrls.append(res.url)
                         dieZeitArticle = bs4.BeautifulSoup(res.text, 'lxml')
                         dieZeitSelectTime = dieZeitArticle.select('.metadata__date')
                         dieZeitSelectText = dieZeitArticle.select('p.paragraph')
@@ -374,20 +393,22 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
                         
                         appendableArticle['article'] = dieZeitArticleTextList
                         
-                        print('About to open output file')
-                        with open(outputFile + '.txt', mode = 'a+', encoding = 'utf-8') as foundArticlesFile:
-                            print('output file opened')
-                            if appendableArticle['url'] not in foundArticles:
-                                print('url not in list')
+                        ##print('About to open output file')
+                        with open(outputFile, mode = 'a+', encoding = 'utf-8') as foundArticlesFile:
+                            ##print('output file opened')
+                            if appendableArticle['url'] not in scrapedArticles:
+                                ##print('url not in list')
                                 try:
-                                    json.dump(appendableArticle,foundArticlesFile, ensure_ascii=False)
+                                    json.dump(appendableArticle, foundArticlesFile, ensure_ascii=False)
                                     print('Article found')
                                     print(appendableArticle['url'])
+                                    scrapedArticles.append(res.url)
                                 except:
                                     print('Not found at ' + appendableArticle['url'] )
                             else:
                                 print('url in list, not appended')
-                        foundArticles.append(appendableArticle['url'])
+                        #foundArticles.append(appendableArticle['url'])
+                        
                         #foundArticlesFile.write(appendableArticle)
 
                     except:
@@ -397,31 +418,16 @@ def lookForWord(inputLinks, outputFile, word, wordPlural):
                     print('Word not detected at ' + res.url)
                 scrapedArticlesFile.write('\n')
                 scrapedArticlesFile.write(articles[i])
-                print('Searching...')
-                scrapedArticles.append(articles[i])    
+                print('Searching...')         
+                with open(scrapedLog, mode = 'a+', encoding = 'utf-8') as scrapedUrlsFile:
+                    scrapedUrlsFile.writelines(appendableArticle['url'] + '\n')
+                #scrapedArticles.append(articles[i])    
             
             except:
                 print('Error at ' + articles[i])
+                with open(errorLog, mode = 'a+', encoding = 'utf-8') as errorUrlsFile:
+                    errorUrlsFile.writelines(articles[i] + '\n') 
             
-            # if appendableArticle not in foundArticlesFile.readlines():
-            #     for key, value in appendableArticle.items():
-            #         foundArticlesFile.write('%s:%s\n' % (key, value))
-            #         foundArticlesFile.write('\n')
-                
-            
-
-    
-    
-
-        
-
-            
-        
-        # for paragraph in dieZeitArticle.findall('p.paragraph'):
-        #     print(str(paragraph))
-        #     print('Fin')
-
-
 
 def grabLinksSearch(index, file):
     
@@ -453,9 +459,9 @@ def grabLinksSearch(index, file):
     print(articleUrls)
     print('Done')
 
-def confirmRepeat(year, default="no"):
+def confirmRepeat(term, default="no"):
 
-    question = 'There is already an index for the year ' + str(year) + '. Do you want to compile it again?'
+    question = 'There is already an index for the word ' + str(term) + '. Do you want to compile it again?'
     valid = {"yes": True, "y": True, "ye": True,
              "no": False, "n": False}
     if default is None:
@@ -489,12 +495,22 @@ def confirmRepeat(year, default="no"):
 #step 2:
     #get through article links
 
-##consolidation!
 
-grabPagesSearcher(sys.argv[1], 'search/' + sys.argv[1])
+##confirmation & consolidation
+
+if (os.path.exists('search/' + sys.argv[1] + '.txt')) == True:
+    if(confirmRepeat(sys.argv[1])):
+        os.remove('search/' + sys.argv[1] + '.txt')
+        grabPagesSearcher(sys.argv[1], 'search/' + sys.argv[1])
+    else:
+        pass
+else:
+    grabPagesSearcher(sys.argv[1], 'search/' + sys.argv[1])
+
+##consolidation!
 
 #scraping!
 
 for i in range(0, len(os.listdir('search/'))):
-    lookForWord('search/' + os.listdir('search/')[i], str(sys.argv[1] + '-results'), sys.argv[1], sys.argv[2])
+    lookForWord('search/' + sys.argv[1] + '.txt', 'articles/' + sys.argv[1] + '-results.txt', sys.argv[1], sys.argv[2])
 
